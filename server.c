@@ -13,9 +13,12 @@
 #include <signal.h>	/* signal name macros, and the kill() prototype */
 #include <string.h>
 
-void parseClientMessage(char *buffer, uint size, char *filePath);
-void getFilePath(char *fileLine, uint fileSize, char *filePath);
-void generateResponseMessage(char *filePath, uint size, char *responseMessage);
+#define MAX_FILE_SIZE 1024
+
+void parseClientMessage(char *buffer, int size, char *filePath);
+void getFilePath(char *fileLine, int fileSize, char *filePath);
+void generateResponseMessage(char *filePath, int size, char *responseMessage);
+void fileToMessage(char *filePath, char *fileMessage);
 
 void error(char *msg)
 {
@@ -71,8 +74,8 @@ int main(int argc, char *argv[])
      parseClientMessage(buffer, 255, filePath);
      printf("Here is the file path: %s\n", filePath);
 
-     char responseMessage[255];
-     memset(responseMessage,0,255);
+     char responseMessage[255+MAX_FILE_SIZE];
+     memset(responseMessage,0,255+MAX_FILE_SIZE);
      generateResponseMessage(filePath,255,responseMessage);
    	 //reply to client
    	 n = write(newsockfd,responseMessage,strlen(responseMessage));
@@ -91,7 +94,7 @@ int main(int argc, char *argv[])
 //INPUT: c-string of client's request
 //OUTPUT: c-string with only the path to the file
 //NOTE: this function converts from c-string => string => c-string
-void parseClientMessage(char *clientMessage, uint size, char *filePath)
+void parseClientMessage(char *clientMessage, int size, char *filePath)
 {
   //std::string has a constructor that does this?
   char fileLine[255];
@@ -135,7 +138,7 @@ void parseClientMessage(char *clientMessage, uint size, char *filePath)
 //return a string with the desired file path
 //INPUT: string beginning with "Here is the message:"...
 //OUTPUT: string with only the path to the file
-void getFilePath(char *fileLine, uint size, char *filePath)
+void getFilePath(char *fileLine, int size, char *filePath)
 {
   //verify that the line starts with "GET "
   memset(filePath,0,size);
@@ -161,7 +164,49 @@ void getFilePath(char *fileLine, uint size, char *filePath)
   
 }
 
-void generateResponseMessage(char *filePath, uint len, char *responseMessage)
+void generateResponseMessage(char *filePath, int size, char *responseMessage)
 {
-  strncpy(responseMessage,"HTTP/1.1 200 OK\nConnection: close\nDate: Sat, 19 Oct 2013 21:44:04 GMT\nServer: Apache/2.2.3 (CentOS)\nLast-Modified: Tue, 09 Aug 2011 15:11:03 GMT Content-Length: 35\nContent-Type: text/html\n\n<!DOCTYPE html><html><body>hello</body></html>\n",236);
+    char fileMessage[MAX_FILE_SIZE];
+    int temp = MAX_FILE_SIZE;
+    int outputSize = 0;
+
+    memset(fileMessage,0,MAX_FILE_SIZE);
+    fileToMessage(filePath, fileMessage);
+    outputSize =  sprintf(responseMessage,
+"HTTP/1.1 200 OK\n\
+Connection: close\n\
+Date: \n\
+Server: CS118/0.0.1\n\
+Content-Length: %d\n\
+Content-Type: %s\n\
+\n\
+%s",
+(int)strlen(fileMessage), "text/html", fileMessage);
+    printf("**gRM, outputSize=%d,%s\n",outputSize,responseMessage);
+}
+
+//SPECIAL CASE: when the file path is empty, open index.html
+//WARNING: need to deal with any file size, but right now it's confined to 1024 bytes
+void fileToMessage(char *filePath, char *fileMessage)
+{
+  FILE *pFile;
+  pFile = fopen(&filePath[1], "r");
+  char temp[50],fileLine[MAX_FILE_SIZE];
+
+  memset(temp,0,50);
+  memset(fileLine,0,MAX_FILE_SIZE);
+  memset(fileMessage,0,MAX_FILE_SIZE);
+  if(pFile == NULL)
+  {
+    sprintf(temp,"ERROR, could not open file \"%s\"\n",filePath);
+    error(temp);
+  }
+  else
+  {
+    while (fgets (fileLine, MAX_FILE_SIZE, pFile) != NULL )
+    {
+      strncat(fileMessage,fileLine,MAX_FILE_SIZE-strlen(fileMessage));
+    }
+    fclose (pFile);
+  }
 }
