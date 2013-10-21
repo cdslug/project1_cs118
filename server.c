@@ -12,11 +12,19 @@
 #include <sys/wait.h>	/* for the waitpid() system call */
 #include <signal.h>	/* signal name macros, and the kill() prototype */
 #include <string.h>
+#include <assert.h>
 
 #define MAX_FILE_SIZE 1024
 
-void parseClientMessage(char *buffer, int size, char *filePath);
-void getFilePath(char *fileLine, int fileSize, char *filePath);
+typedef struct {
+	char* method;
+	char* URI;
+	char* HTTP_version;
+	char** header_lines;
+} http_r;
+
+char** str_split(char* str, const char delim);
+http_r* parseRequest(char* requestMessage);
 void generateResponseMessage(char *filePath, int size, char *responseMessage);
 void fileToMessage(char *filePath, char *fileMessage);
 
@@ -59,19 +67,19 @@ int main(int argc, char *argv[])
        error("ERROR on accept");
          
      int n;
-   	 char buffer[256];
+     char buffer[256];
    			 
-   	 memset(buffer, 0, 256);	//reset memory
+     memset(buffer, 0, 256);	//reset memory
       
- 		 //read client's message
-   	 n = read(newsockfd,buffer,255);
-   	 if (n < 0) error("ERROR reading from socket");
-   	 printf("Here is the message: %s\n",buffer);
+     //read client's message
+     n = read(newsockfd,buffer,255);
+     if (n < 0) error("ERROR reading from socket");
+     printf("Here is the message: %s\n",buffer);
 
-   	 //parse message here
-     char filePath[255];
-     memset(filePath,0,255);
-     parseClientMessage(buffer, 255, filePath);
+     //parse message here
+     http_r* request;
+     request = parseRequest(buffer);
+	 char* filePath = request->URI;
      printf("Here is the file path: %s\n", filePath);
 
      char responseMessage[255+MAX_FILE_SIZE];
@@ -88,80 +96,69 @@ int main(int argc, char *argv[])
      return 0; 
 }
 
-//takes in an http request message from the client.
-//looks for the line with "Here is the message:"
-//returns the name of the file 
+//takes in an http request message from the client (assumes HTTP GET).
+//splits the message into multiple parts and fills in http_r struct
+//returns the struct of http request 
 //INPUT: c-string of client's request
-//OUTPUT: c-string with only the path to the file
-//NOTE: this function converts from c-string => string => c-string
-void parseClientMessage(char *clientMessage, int size, char *filePath)
-{
-  //std::string has a constructor that does this?
-  char fileLine[255];
-  memset(fileLine,0,255);
-  //check each line for "Here is the message:"
-  int i;
+//OUTPUT: http_r struct
+http_r * parseRequest(char* requestMessage) {
+	http_r * request = malloc(sizeof(http_r));
+	char** request_line;
 
-  for(i = 0; i < size; i++){
-    if(strncmp(&(clientMessage[i]),"GET ",4) == 0)
-    {
-      //find the length of the line
-      int len = 4;
-      while(i+len < size && clientMessage[i+len] != '\n')
-      {
-        len++;
-      }
-      // fileLine = clientMessage.substr(i,len);
+	request->header_lines = str_split(requestMessage, '\n');
+	
+	request_line = str_split(request->header_lines[0], ' ');
+	request->method = request_line[0];
+	request->URI = request_line[1];
+	request->HTTP_version = request_line[2];
+	request->header_lines = &request->header_lines[1];
 
-      strncpy(fileLine,&(clientMessage[i]),len-i);
-      getFilePath(fileLine, len-i, filePath);
-      break;
-    }
-    else
-    {
-      while(i < size && clientMessage[i] != '\n') {i++;}
-      i++;//skips the newline and on to the next line
-    }
-  }
-  if(fileLine[0]=='\0')
-  {
-    error("ERROR pCM: expected \"GET \"");
-  }
-  
-  // std::string filePath = getFilePath(fileLine);
-  // c_filePath = filePath.c_str;
-
+	return request;
 }
 
-//takes in a string that begins "Here is the message:"
-//looks for requested file name
-//return a string with the desired file path
-//INPUT: string beginning with "Here is the message:"...
-//OUTPUT: string with only the path to the file
-void getFilePath(char *fileLine, int size, char *filePath)
+// Splits a string into several tokenized strings separated by a delimiter character
+// INPUT: c-string , constant delimiter character
+// OUTPUT: c-string array of tokenized string
+char** str_split(char* str, const char delim)
 {
-  //verify that the line starts with "GET "
-  memset(filePath,0,size);
-  // printf("**size: %d, %s**\n",size, fileLine);
-  if(size >= 4 && strncmp(fileLine,"GET ", 4) == 0)
-  {
-    //start  after the space after 'GET '
-    int i;
-    for(i = 4; i < size; i++)
-    {
-      if(fileLine[i] == ' ')
-      {
-        filePath = strncpy(filePath,&(fileLine[4]),i-4);
-        // printf("**pathLen:%d,path:%s**\n",i-4,filePath);
-        break;
-      }
-    }
-  }
-  else
-  {
-    error("ERROR gFP: expected \"GET\"");
-  }
-  
+	char** result	= 0;
+	size_t count	= 0;
+	char* tmp	= str;
+	char* last_delim= 0;
+
+	// Count elements to be extracted
+	while (*tmp)
+	{
+		if(delim == *tmp){
+			count++;
+			last_delim = tmp;
+		}
+		tmp++;
+	}
+	
+	// Add space for trailing token
+	count += last_delim < (str + strlen(str)-1);
+	// Allocate memory for result and add space for NULL pointer
+	result = malloc(sizeof(char*) * (count+1));
+
+	if(result)
+	{
+		size_t i = 0;
+		char* copy = strdup(str);
+		const char delim_s[2] = {delim,'\0'};
+		char* token = strtok(copy, delim_s);
+	
+		while (token)
+		{
+			assert(i < count);
+			*(result + i++) = strdup(token);
+			token = strtok(NULL, delim_s);
+		}
+		assert(i == count);
+		*(result+i) = NULL;
+	}
+	
+	return result;
 }
 
 void generateResponseMessage(char *filePath, int size, char *responseMessage)
