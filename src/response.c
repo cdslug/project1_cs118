@@ -35,26 +35,27 @@ char * numToStr(size_t num)
 //the convention I used allocates member strings in helper functions
 //the helper functions pass back a pointer to allocated memory
 //this memory needs to be cleaned up
-char * getFileInfo(const http_r * request, http_w * response)
+void getFileInfo(const http_r * request, http_w * response)
 {
-	fileBody = malloc(sizeof(char)*(fileSize+1));
-	memset(fileBody, 0, sizeof(char)*(fileSize+1));
+	printf("begin gFI\n");
+	response->file = malloc(sizeof(file_info));
+	memset(response->file,0, sizeof(file_info));
+
+	char * fileBody = NULL;
 
 	FILE *filePointer = NULL;
-	filePointer = fopen(&filePath[1], "r");
-
+	filePointer = fopen(&(request->URI[1]), "r");
+	printf("in gFI: file opened\n");
 	if(filePointer == NULL)
 	{
-		char temp = malloc(sizeof(char)*(strlen(request->URI)+29));//string should be 29
-		sprintf(temp,"ERROR, could not open file \"%s\"\n",filePath);
-	    error(temp);
+		printf("ERROR, could not open file \"%s\"\n",request->URI);
 	}
 	else
 	{	
-		size_t  remaining = -1, 
-				pos = 0, 
-				fileSize = 0;
-		char * 	fileBody = NULL;
+		size_t remaining = -1;
+		size_t pos = 0;
+		size_t fileSize = 0;
+		 
 
 		//find file size
 		//from stackoverflow
@@ -63,35 +64,40 @@ char * getFileInfo(const http_r * request, http_w * response)
 		fileSize = ftell(filePointer);
 		fseek(filePointer, 0L, SEEK_SET);
 		//end stackoverflow
-
+		printf("in gFI: filesize: %d\n",fileSize);
 		remaining = fileSize;
 
+		fileBody = malloc(sizeof(char)*(fileSize+1));
+		memset(fileBody, 0, sizeof(char)*(fileSize+1));
+		
 		//this should concatenate
-	    while (fgets (&(fileBody[pos]), remaining, filePointer) != NULL )
+	    while (fgets (&(fileBody[pos]), remaining, filePointer) != NULL && remaining != 1)
 	    {
+	    printf("in gFI: fileSize = %d, pos = %d, remaining = %d\n",fileSize, pos, remaining);
 	      pos = strlen(fileBody);
-	      remaining = fileSize-pos;
+	      remaining = fileSize-pos; //because the filesize is one too big
+	      
 	    }
+	    printf("in gFI: fileSize = %d, pos = %d, remaining = %d\n",fileSize, pos, remaining);
 	    fclose (filePointer);
-	    return fileBody;
 	}
 
-		request->file->body = fileToStr(request->URI);
-
-		request->file = malloc(sizeof(file-info));
-		memset(request->file,0, sizeof(file-info));
-		request->file->type = allocStr("text/html");//todo, based on file extension
-		request->file->size = numToStr(strlen(respone->file->body));
+		response->file->body = fileBody;
+		response->file->type = allocStr("text/html");//todo, based on file extension
+		response->file->size = numToStr(strlen(response->file->body));
 		
-		request->file->date = dateToStr();
+		
 }
 //allocate all memory in functions before setting response pointers
 http_w * generateResponseInfo(http_r * request)
 {
+	printf("begin gRI\n");
 	http_w * response = malloc(sizeof(http_w));
 
+	printf("in gRI: call gFI\n");
 	getFileInfo(request, response);
 
+	//assume that if 
 	if(response->file->body == NULL)
 	{
 		response->status = numToStr(404);
@@ -112,13 +118,15 @@ http_w * generateResponseInfo(http_r * request)
 	return response;
 }
 
-char * generateResponseMessage(http_w *request)
+char * generateResponseMessage(http_r *request)
 {
+	printf("begin gRM\n");
 	http_w * responseInfo = malloc(sizeof(http_w));
+	memset(responseInfo,0,sizeof(http_w));
+
 	char * responseMessage = NULL;
 	size_t len = 0;
-
-	memset(responseInfo,0,sizeof(http_w));
+	printf("in gRM: call gRI\n");
 	responseInfo = generateResponseInfo(request);
 
 	len += strlen(responseInfo->HTTP_version);
@@ -132,8 +140,9 @@ char * generateResponseMessage(http_w *request)
 	len += strlen(responseInfo->file->body);
 	len += strlen(responseInfo->file->date);
 
-	len += 0;//todo, need to think of an elegant method
-
+	//using the len above, and calculation below equalling 67, allocate responseMessage
+	responseMessage = malloc(sizeof(char) * (len+67+1));
+	memset(responseMessage, 0, (len+67+1));
 //right now, message does not containresponseInfo->file->date
 //6+13+7+9+17+14+1=67
 	sprintf(responseMessage, 

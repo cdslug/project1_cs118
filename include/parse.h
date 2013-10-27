@@ -1,3 +1,6 @@
+#ifndef PARSE_H
+#define PARSE_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,3 +17,5 @@ typedef struct {
 char** str_split(char* str, const char delim);
 http_r* parseRequest(char* requestMessage);
 void printRequest(http_r* request);
+
+#endif //PARSE_H

@@ -19,8 +19,8 @@
 
 #define MAX_FILE_SIZE 1024
 
-void generateResponseMessage(char *filePath, int size, char *responseMessage);
-void fileToMessage(char *filePath, char *fileMessage);
+// void generateResponseMessage(char *filePath, int size, char *responseMessage);
+// void fileToMessage(char *filePath, char *fileMessage);
 
 void error(char *msg)
 {

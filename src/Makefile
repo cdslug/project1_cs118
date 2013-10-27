@@ -7,10 +7,10 @@ LDIR =../lib
 
 LIBS=-lm
 
-_DEPS = response.h parse.h
+_DEPS = parse.h response.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = response.o parse.o server.o 
+_OBJ =  parse.o response.o server.o 
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 
