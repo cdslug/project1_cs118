@@ -1,4 +1,3 @@
-
 #include "response.h"
 
 //code found on stackoverflow
@@ -19,7 +18,7 @@ char * dateToStr()
 char * allocStr(const char * str)
 {
 	char * buf = NULL;
-	strdup(buf, str);
+	buf = strdup(str);
 	return buf;
 }
 
@@ -38,15 +37,15 @@ char * numToStr(size_t num)
 //this memory needs to be cleaned up
 char * getFileInfo(const http_r * request, http_w * response)
 {
-	fileBody = malloc(sizeof(char)*(fileSize+1);
-	memset(fileBody, 0, sizeof(char)*(fileSize+1);
+	fileBody = malloc(sizeof(char)*(fileSize+1));
+	memset(fileBody, 0, sizeof(char)*(fileSize+1));
 
 	FILE *filePointer = NULL;
 	filePointer = fopen(&filePath[1], "r");
 
 	if(filePointer == NULL)
 	{
-		char temp = malloc(sizeof(char)*(strlen(request->URI)+29);//string should be 29
+		char temp = malloc(sizeof(char)*(strlen(request->URI)+29));//string should be 29
 		sprintf(temp,"ERROR, could not open file \"%s\"\n",filePath);
 	    error(temp);
 	}
@@ -82,7 +81,7 @@ char * getFileInfo(const http_r * request, http_w * response)
 		request->file = malloc(sizeof(file-info));
 		memset(request->file,0, sizeof(file-info));
 		request->file->type = allocStr("text/html");//todo, based on file extension
-		request->file->size = numToStr(strlen(respone->file->body)));
+		request->file->size = numToStr(strlen(respone->file->body));
 		
 		request->file->date = dateToStr();
 }
@@ -105,7 +104,7 @@ http_w * generateResponseInfo(http_r * request)
 		response->status_str = allocStr("OK");
 	}
 
-	strdup(response->HTTP_version,request->HTTP_version); //look@; not sure if this is right
+	response->HTTP_version = strdup(request->HTTP_version); 
 	response->connection = allocStr("close");//todo
 	response->date = dateToStr();
 	response->server = allocStr("CS118/0.0.1");
@@ -113,7 +112,7 @@ http_w * generateResponseInfo(http_r * request)
 	return response;
 }
 
-char * generateResponseMessage(http_r *request)
+char * generateResponseMessage(http_w *request)
 {
 	http_w * responseInfo = malloc(sizeof(http_w));
 	char * responseMessage = NULL;

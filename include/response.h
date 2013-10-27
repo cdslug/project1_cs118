@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include "parse.h"
 
 typedef struct {
 	char* HTTP_version;
@@ -25,5 +26,5 @@ char * dateToStr();
 char * allocStr(const char * str);
 char * numToStr(size_t num);
 char * getFileInfo(const http_r * request, http_w * response);
-http_w * generateResponse(const http_r * request);
-char * generateResponseMessage(const http_w *responseInfo);
+http_w * generateResponse(http_r * request);
+char * generateResponseMessage(http_w *responseInfo);
