@@ -13,7 +13,9 @@
 #include <signal.h>	/* signal name macros, and the kill() prototype */
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 #include "parse.h"
+#include "response.h"
 
 #define MAX_FILE_SIZE 1024
 
@@ -73,10 +75,12 @@ int main(int argc, char *argv[])
      request = parseRequest(buffer);
 	 char* filePath = request->URI;
      printf("Here is the file path: %s\n", filePath);
+     ////old code
+     // char responseMessage[255+MAX_FILE_SIZE];
+     // memset(responseMessage,0,255+MAX_FILE_SIZE);
+     // generateResponseMessage(filePath,255,responseMessage);
+     char * responseMessage = generateResponseMessage(request);
 
-     char responseMessage[255+MAX_FILE_SIZE];
-     memset(responseMessage,0,255+MAX_FILE_SIZE);
-     generateResponseMessage(filePath,255,responseMessage);
    	 //reply to client
    	 n = write(newsockfd,responseMessage,strlen(responseMessage));
    	 if (n < 0) error("ERROR writing to socket");
@@ -88,6 +92,7 @@ int main(int argc, char *argv[])
      return 0; 
 }
 
+/*
 void generateResponseMessage(char *filePath, int size, char *responseMessage)
 {
     char fileMessage[MAX_FILE_SIZE];
@@ -134,3 +139,4 @@ void fileToMessage(char *filePath, char *fileMessage)
     fclose (pFile);
   }
 }
+*/
