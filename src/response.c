@@ -276,6 +276,7 @@ void freeResponse(http_w * response)
 	for(i = 0; i < NUM_HEADER_ELEMENTS; i++)
 	{
 		free(response->header_lines[i]);
+		free(response->header_fields[i]);
 	}
 
 	free(response);
