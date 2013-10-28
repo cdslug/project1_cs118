@@ -28,8 +28,10 @@ typedef struct {
 char * dateToStr();
 char * allocStr(const char * str);
 char * numToStr(size_t num);
+char * getContentType(const char * URI);
 void getFileInfo(const http_r * request, http_w * response);
-http_w * generateResponse(http_r * request);
-char * generateResponseMessage(http_r *request);
+http_w * generateResponseInfo(http_r * request);
+char * generateResponseMessage(http_r * request);
+void freeResponse(http_w * response);
 
 #endif //RESPONSE_H
