@@ -8,27 +8,48 @@
 #include <time.h>
 #include "parse.h"
 
-typedef struct {
-	char* type;
-	char* size;
-	char* body;
-	char* date;
-} file_info;
+#define HTTP_VERSION 	0
+#define STATUS 			1
+#define STATUS_STR 		2
+#define CONNECTION 		3
+#define DATE 			4
+#define SERVER 			5
+
+
+#define CONTENT_TYPE  	6
+#define CONTENT_LENGTH  7
+#define LAST_MODIFIED 	8
+#define BODY 			9
+
+#define NUM_HEADER_ELEMENTS 10
 
 typedef struct {
-	char* HTTP_version;
-	char* status;
-	char* status_str;
-	char* connection;
-	char* date;
-	char* server;
-	file_info * file;
+// //connection pointers
+// 	char* HTTP_version;
+// 	char* status;
+// 	char* status_str;
+// 	char* connection;
+// 	char* date;
+// 	char* server;
+// //content pointers
+// 	char* content_type;
+// 	char* content_length;
+// 	char* last_modified;
+// 	char* body;
+//pointers to all content
+	char ** header_lines;
+	char ** header_fields;
 } http_w;
+
+http_w * responseInit();
 
 char * dateToStr();
 char * numToStr(size_t num);
 char * getContentType(const char * URI);
+char * getFileDate(FILE * fp);
 void getFileInfo(const http_r * request, http_w * response);
+
+char * getStatusStr(int status);
 http_w * generateResponseInfo(http_r * request);
 char * generateResponseMessage(http_r * request);
 void freeResponse(http_w * response);
