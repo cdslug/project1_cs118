@@ -12,16 +12,8 @@ char * dateToStr()
   time_t now = time(0);
   struct tm tm = *gmtime(&now);
   strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z", &tm);
+  printf("in dateToStr: date=%s\n",buf);
   return buf;
-}
-
-//pretty much allocates space and copies a string
-//maybe strdup alone was enough
-char * allocStr(const char * str)
-{
-	char * buf = NULL;
-	buf = strdup(str);
-	return buf;
 }
 
 //max length of a number is ceiling of log10(2^64-1)+1 = 21
@@ -31,7 +23,7 @@ char * numToStr(size_t num)
 {
 	char buf[21];
 	sprintf(buf,"%d",num);
-	return allocStr(buf);
+	return strdup(buf);
 }
 
 char * getContentType(const char * URI)
@@ -42,6 +34,10 @@ char * getContentType(const char * URI)
 	if(strcmp(ext,".html") == 0)
 	{
 		contentType = strdup("text/html");
+	}
+	else if (strcmp(ext, ".css") == 0)
+	{
+		contentType = strdup("text/css");
 	}
 	else if (strcmp(ext,".jpg") == 0 || strcmp(ext,".jpeg") == 0)
 	{
@@ -131,21 +127,21 @@ http_w * generateResponseInfo(http_r * request)
 	if(response->file->body == NULL)
 	{
 		response->status = numToStr(404);
-		response->status_str = allocStr("Not Found");//not sure if this is standard
+		response->status_str = strdup("Not Found");//not sure if this is standard
 		printf("in gRI: body unfilled\n");
 	}
 	else
 	{
 		//assume correct
 		response->status = numToStr(200);
-		response->status_str = allocStr("OK");
+		response->status_str = strdup("OK");
 		printf("in gRI: body filled, status=%s, stat_str=%s\n",response->status, response->status_str);
 	}
 
 	response->HTTP_version = strdup(request->HTTP_version); 
-	response->connection = allocStr("close");//todo
+	response->connection = strdup("close");//todo
 	response->date = dateToStr();
-	response->server = allocStr("CS118/0.0.1");
+	response->server = strdup("CS118/0.0.1");
 	printf("in gRI: response status = %s\n",response->status);
 	return response;
 	printf("in gRI: wARNING, after response somehow\n");
