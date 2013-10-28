@@ -1,0 +1,8 @@
+remaining work:
+•look at all the comments starting with “todo”
+•the first set of slides from the TA mentioned considerations of big and small endian, look into that
+•free the allocated space from the request string
+•correctly handle a file that does not exit
+•if a file is not specified, return index.html
+•fix the date, right now it only shows the day of the week
+•MULTIPLE CONNECTIONS
