@@ -1,0 +1,11 @@
+remaining work:
+•find all the comments starting with “todo”
+•the first set of slides from the TA mentioned considerations of big and small endian, look into that
+•detect the file extension
+•using the found file extension, write the corresponding content type:
+	text/html
+	image/gif
+	image/jpeg
+•free the allocated space in from the request
+•correctly handle a file that does not exit
+•if a file is not specified, return index.html
