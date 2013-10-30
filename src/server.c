@@ -22,8 +22,8 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
-#include "include/parse.h"
-#include "include/response.h"
+#include "parse.h"
+#include "response.h"
 
 #define MAX_FILE_SIZE 1024
 
@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
        error("ERROR on accept");*/
 
 
-     fd_set active_fd_set; //set for holding sockets
+     fd_set active_fd_set, read_fd_set; //set for holding sockets
      int newsockfd; //socket representing client
 
      /* Initialize the set of active sockets */
@@ -76,37 +76,55 @@ int main(int argc, char *argv[])
      FD_SET(sockfd, &active_fd_set); //put sock to the set to monitor new connections
 
      while(1){
-    	 if(select(FD_SETSIZE,&active_fd_set,NULL,NULL,NULL)<0){exit(-1);}//FAIL with exit status 1 on error
+    	 read_fd_set = active_fd_set;
+    	 if(select(FD_SETSIZE,&read_fd_set,NULL,NULL,NULL)<0){perror("ERROR select()"); exit(-1);}//FAIL with exit status 1 on error
 
+    	 for(int i =0; i < FD_SETSIZE; i++){
+    		 if(FD_ISSET(i, &read_fd_set)) {
+				 if(i == sockfd)//new connection request
+				 {
+					 newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+					 if(newsockfd < 0) { error("ERROR accept()");}
+					 FD_SET(newsockfd, &active_fd_set);
+				 }
+				 else{ // Data on connected socket
 
-   		 if(FD_ISSET(sockfd, &active_fd_set))//new connection request
-	     {
-	         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-	         FD_SET(newsockfd, &active_fd_set);
-	     }
-	     if(FD_ISSET(newsockfd, &active_fd_set)){
-	    	 int n;
-	    	 char buffer[256];
-	 		 memset(buffer, 0, 256);	//reset memory
-
-	 		 //read client's message
-	 		 n = read(newsockfd,buffer,255);
-	 		 if (n < 0) error("ERROR reading from socket");
-	 		 printf("Here is the message: %s\n",buffer);
-
-	 		 //parse message here
-	 		 http_r* request;
-	 		 request = parseRequest(buffer);
-	 		 char* filePath = request->URI;
-	 		 printf("Here is the file path: %s\n", filePath);
-	 		 char * responseMessage = generateResponseMessage(request);
-
-	 		 //reply to client
-	 		 n = write(newsockfd,responseMessage,strlen(responseMessage));
-	 		 if (n < 0) error("ERROR writing to socket");
-	 		 close(newsockfd);//close connection
-	 	}
+					 if (read_socket(newsockfd) < 0){
+						 close(newsockfd);//close connection
+						 FD_CLR(i, &active_fd_set);
+					 }
+				}
+    		 }
+    	 }
      }
      close(sockfd);
      return 0;
 }
+
+int read_socket(int filedes) {
+	char buffer[1024];
+	memset(buffer, 0, 1024);	//reset memory
+	int nread,nwrite;
+
+	nread = read(filedes, buffer, 1024);
+	if(nread < 0){
+		error("read");
+		return -1; //never reached. shuts up compiler.
+	}
+	else if(nread == 0){
+		return -1;
+	}
+	else {
+		//parse message here
+		http_r* request;
+		request = parseRequest(buffer);
+		char* filePath = request->URI;
+		printf("Here is the file path: %s\n", filePath);
+		char * responseMessage = generateResponseMessage(request);
+		//reply to client
+		nwrite = write(filedes,responseMessage,strlen(responseMessage));
+		if (nwrite < 0) error("ERROR writing to socket");
+		return 0;
+	}
+}
+
