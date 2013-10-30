@@ -119,11 +119,14 @@ int read_socket(int filedes) {
 		//parse message here
 		http_r* request;
 		request = parseRequest(buffer);
+        printRequest(request);
 		char* filePath = request->URI;
 		printf("Here is the file path: %s\n", filePath);
 		char * responseMessage = generateResponseMessage(request);
 		//reply to client
 		nwrite = write(filedes,responseMessage,strlen(responseMessage));
+        free(responseMessage);
+        // freeRequest(request);
 		if (nwrite < 0) error("ERROR writing to socket");
 		return 0;
 	}
