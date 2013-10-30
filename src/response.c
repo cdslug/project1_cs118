@@ -142,7 +142,7 @@ void getFileInfo(const http_r * request, http_w * response)
 	    while (remaining > 0)
 	    {
 	    	// printf("in gFI: fileSize = %d, pos = %d, remaining = %d\n",fileSize, pos, remaining);
-	      	fileBody[pos] = fgetc (filePointer);
+	      	// fileBody[pos] = fgetc (filePointer);
 	      	pos = strlen(fileBody);
 	      	remaining = fileSize-pos; 
 	      	if(pos%1000 == 0)
@@ -152,7 +152,10 @@ void getFileInfo(const http_r * request, http_w * response)
 	    }
 	    // printf("in gFI: fileSize = %d, pos = %d, remaining = %d\n",fileSize, pos, remaining);
 	    // fclose (filePointer);//relocated to bottom so unfound file can be detected
-
+	    printf("in gFI: fileSize-3 = %c\n",fileBody[fileSize-3]);
+	    printf("in gFI: fileSize-2 = %c\n",fileBody[fileSize-2]);
+	    printf("in gFI: fileSize-1 = %c\n",fileBody[fileSize-1]);
+	    // printf("in gFI: fileSize-0 = %c\n",fileBody[fileSize]);
 	    
 	}
 	// printf("in gFI: fileBody:\n%s\n***END BODY***\n", fileBody);
