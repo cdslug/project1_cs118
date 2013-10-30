@@ -1,0 +1,135 @@
+CS118 Computer Networking Fundamentals
+Project 1: Concurrent Web Server using BSD Sockets
+
+Partner1_Name:Spencer Brett
+Partner1_SID:
+
+Partner2_Name:Ryan Mercer
+Partner2_SID:803817943
+
+30 October 2013
+
+///////////////////////////////
+/////     Description     /////
+///////////////////////////////
+
+Our work is split up into 3 files
+Server: uses the skelton code to setup the socket. Modified to support multiple connections. (Spencer should explain the rest). Inside the main loop, parse the request and hand over the request information to the function getResponseMessage().
+
+Parse: (Go Spencer!)If a URI is not provided, replace it with “/Index.html”
+
+Response: 
+This is composed of 6 functions, 1 main and 5 helper. The work is outline below:
+generate response message 
+	generate response information
+		get file information
+			read file
+			determine length
+			determine extension
+
+//////////////////////////
+/////     Issues     /////
+//////////////////////////
+Server:
+
+Parse
+•Header Lines: When tokenizing the request message, the newline character was included. This provided strange output for the response header lines. This was first solved by detecting the non-printable character and replacing it with ‘\0’. Later, a more robust fix (Go Spencer!)
+•Multiple Requests: using the wrong index (Go Spencer!)
+
+Response
+•Images: We were able to open and read image files and append them to the response message, but the browser receiving them thought they were corrupt. We thought that the end of file character might have been missed in a 1-off error. There was also suggestion that the memset action with 0 instead of ‘\0’ caused misfunctioning with strlen. Another thought was that the bytes needed to be reordered using the host-to-net functions, but it was not clear how to do this. (unresolved)
+
+//////////////////////////
+/////     Manual     /////
+//////////////////////////
+
+use the make command
+
+////////////////////////////
+/////     Examples     /////
+////////////////////////////
+Example 1 - bad URI
+
+Client Out:
+(browser)http://127.0.0.1/asasdfa
+
+Server In:
+GET /asasdfa HTTP/1.1
+Host: 127.0.0.1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/536.30.1 (KHTML, like Gecko) Version/6.0.5 Safari/536.30.1
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: english
+
+Server Out:
+HTTP/1.1 404 Not_Found
+Connection: close
+Date: Mon, 30 Oct 2013 21:04:13 GMT
+Server: CS118/0.0.1
+Content-Type: none
+Content-Length: 0
+Last-Modified: TODO
+
+Client Display:
+(white screen)
+
+Example 2 - no URI
+
+Client Out:
+http://127.0.0.1/
+
+Server In:
+GET / HTTP/1.1
+…
+
+Server Out:
+HTTP/1.1 200 OK
+Connection: close
+Date: Mon, 30 Oct 2013 21:04:13 GMT
+Server: CS118/0.0.1
+Content-Type: text/http
+Content-Length: 103
+Last-Modified: TODO
+
+Client Display:
+simple index.html page
+
+Example 3 - basic html
+
+Client Out:
+http://127.0.0.1/index.html
+
+Server In:
+GET /index.html HTTP/1.1
+…
+
+Server Out:
+HTTP/1.1 200 OK
+Connection: close
+Date: Mon, 30 Oct 2013 21:04:13 GMT
+Server: CS118/0.0.1
+Content-Type: text/http
+Content-Length: 103
+Last-Modified: TODO
+
+
+
+
+Client Display:
+simple html page
+
+
+Example 4 - html with suport files
+
+Client Out:
+http://127.0.0.1/csspage.html
+
+Server In:
+GET /csspage.html HTTP/1.1
+…
+
+Server Out:
+
+Client Display:
+css formatted html page without images
+
+
