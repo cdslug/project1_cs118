@@ -76,10 +76,11 @@ int main(int argc, char *argv[])
      FD_SET(sockfd, &active_fd_set); //put sock to the set to monitor new connections
 
      while(1){
+        int i = 0;
     	 read_fd_set = active_fd_set;
-    	 if(select(FD_SETSIZE,&read_fd_set,NULL,NULL,NULL)<0){perror("ERROR select()"); exit(-1);}//FAIL with exit status 1 on error
+    	 if(select(FD_SETSIZE,&read_fd_set,NULL,NULL,NULL)<0){error("ERROR select()");}//FAIL with exit status 1 on error
 
-    	 for(int i =0; i < FD_SETSIZE; i++){
+    	 for(i =0; i < FD_SETSIZE; i++){
     		 if(FD_ISSET(i, &read_fd_set)) {
 				 if(i == sockfd)//new connection request
 				 {
@@ -89,8 +90,8 @@ int main(int argc, char *argv[])
 				 }
 				 else{ // Data on connected socket
 
-					 if (read_socket(newsockfd) < 0){
-						 close(newsockfd);//close connection
+					 if (read_socket(i) < 0){
+						 close(i);//close connection
 						 FD_CLR(i, &active_fd_set);
 					 }
 				}
