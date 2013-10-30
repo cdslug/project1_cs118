@@ -1,5 +1,30 @@
 #include "response.h"
 
+
+http_w * responseInit()
+{
+	int i = 0;
+
+	http_w * response = (http_w*)malloc(sizeof(http_w));
+
+	response->header_lines = (char**)malloc(sizeof(char*) * (NUM_HEADER_ELEMENTS + 1));
+	memset(response->header_lines, '\0',sizeof(char*) * NUM_HEADER_ELEMENTS + 1);
+
+	response->header_fields = (char**)malloc(sizeof(char*) * (NUM_HEADER_ELEMENTS +1));
+	response->header_fields[HTTP_VERSION] 	= strdup("");
+	response->header_fields[STATUS] 		= strdup(" ");
+	response->header_fields[STATUS_STR] 	= strdup(" ");
+	response->header_fields[CONNECTION] 	= strdup("\nConnection: ");
+	response->header_fields[DATE] 			= strdup("\nDate: ");
+	response->header_fields[SERVER] 		= strdup("\nServer: ");
+
+	response->header_fields[CONTENT_TYPE] 	= strdup("\nContent-Type: ");
+	response->header_fields[CONTENT_LENGTH] = strdup("\nContent-Length: ");
+	response->header_fields[LAST_MODIFIED] 	= strdup("\nLast-Modified: ");
+	response->header_fields[BODY] 			= strdup("\n\n");
+	
+	return response;
+}
 //code found on stackoverflow
 //http://stackoverflow.com/questions/7548759/generate-a-date-string-in-http-response-date-format-in-c
 //SAMPLE: "Tue, 15 Nov 2010 08:12:31 GMT"
@@ -11,17 +36,9 @@ char * dateToStr()
   char *buf = malloc(sizeof(char) * (30));
   time_t now = time(0);
   struct tm tm = *gmtime(&now);
-  strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z", &tm);
+  strftime(buf, 30, "%a, %d %b %Y %H:%M:%S %Z", &tm);
+  // printf("in dateToStr: date=%s\n",buf);
   return buf;
-}
-
-//pretty much allocates space and copies a string
-//maybe strdup alone was enough
-char * allocStr(const char * str)
-{
-	char * buf = NULL;
-	buf = strdup(str);
-	return buf;
 }
 
 //max length of a number is ceiling of log10(2^64-1)+1 = 21
@@ -29,9 +46,11 @@ char * allocStr(const char * str)
 //still seems useful enough to keep
 char * numToStr(size_t num)
 {
+	
 	char buf[21];
+	memset(buf,'\0',21);
 	sprintf(buf,"%d",num);
-	return allocStr(buf);
+	return strdup(buf);
 }
 
 char * getContentType(const char * URI)
@@ -39,17 +58,26 @@ char * getContentType(const char * URI)
 	char * contentType = NULL;
 	char * ext = strrchr(URI,'.');
 
-	if(strcmp(ext,".html") == 0)
+	if(ext == NULL)
+	{
+		//todo check
+		contentType = strdup("empty");
+	}
+	else if(strcmp(ext,".html") == 0)
 	{
 		contentType = strdup("text/html");
 	}
+	else if (strcmp(ext, ".css") == 0)
+	{
+		contentType = strdup("text/css");
+	}
 	else if (strcmp(ext,".jpg") == 0 || strcmp(ext,".jpeg") == 0)
 	{
-		contentType = strdup("image/html");
+		contentType = strdup("image/jpeg");
 	}
 	else if (strcmp(ext,".gif") == 0)
 	{
-		contentType = strdup("image/html");
+		contentType = strdup("image/gif");
 	}
 	else
 	{
@@ -59,23 +87,35 @@ char * getContentType(const char * URI)
 	return contentType;
 }
 
+char * getFileDate(FILE * fp)
+{
+	if(fp == NULL)
+	{
+		return strdup("");
+	}
+	else
+	{
+		//todo, this is a dummy for consistancy, otherwise freeing this will crash
+		return strdup("TODO");
+	}
+}
 //the convention I used allocates member strings in helper functions
 //the helper functions pass back a pointer to allocated memory
 //this memory needs to be cleaned up
 void getFileInfo(const http_r * request, http_w * response)
 {
-	printf("begin gFI\n");
-	response->file = malloc(sizeof(file_info));
-	memset(response->file,0, sizeof(file_info));
+	// printf("begin gFI\n");
 
 	char * fileBody = NULL;
 
 	FILE *filePointer = NULL;
 	filePointer = fopen(&(request->URI[1]), "r");
-	printf("in gFI: file opened\n");
+	// printf("in gFI: file opened\n");
+
 	if(filePointer == NULL)
 	{
 		printf("ERROR, could not open file \"%s\"\n",request->URI);
+		fileBody = strdup("");
 	}
 	else
 	{	
@@ -95,110 +135,138 @@ void getFileInfo(const http_r * request, http_w * response)
 		remaining = fileSize;
 
 		fileBody = malloc(sizeof(char)*(fileSize+1));
-		memset(fileBody, 0, sizeof(char)*(fileSize+1));
+		memset(fileBody, '\0', sizeof(char)*(fileSize+1));
 		
 		//this should concatenate
-		//remaining+1 because I don't think the filesize does not include terminating char
-	    while (fgets (&(fileBody[pos]), remaining+1, filePointer) != NULL && remaining > 0)
+		//todo check: this included the EOF
+	    while (remaining > 0)
 	    {
-	    	printf("in gFI: fileSize = %d, pos = %d, remaining = %d\n",fileSize, pos, remaining);
+	    	// printf("in gFI: fileSize = %d, pos = %d, remaining = %d\n",fileSize, pos, remaining);
+	      	fileBody[pos] = fgetc (filePointer);
 	      	pos = strlen(fileBody);
 	      	remaining = fileSize-pos; 
-	      
+	      	if(pos%1000 == 0)
+	      	{
+	      		// printf("in gFI: pos=%d\n",pos);
+	      	}
 	    }
-	    printf("in gFI: fileSize = %d, pos = %d, remaining = %d\n",fileSize, pos, remaining);
-	    fclose (filePointer);
+	    // printf("in gFI: fileSize = %d, pos = %d, remaining = %d\n",fileSize, pos, remaining);
+	    // fclose (filePointer);//relocated to bottom so unfound file can be detected	    
 	}
-	printf("in gFI: fileBody:\n%s\n***END BODY***\n", fileBody);
-	printf("in gFI: strlen(fileBody) = %d\n", strlen(fileBody));
-		response->file->body = fileBody;
-		response->file->type = getContentType(request->URI);
-		response->file->size = numToStr(strlen(response->file->body));
-		
-		
+	// printf("in gFI: fileBody:\n%s\n***END BODY***\n", fileBody);
+	// printf("in gFI: strlen(fileBody) = %d\n", strlen(fileBody));
+	
+	response->header_lines[CONTENT_LENGTH] 	= numToStr(strlen(fileBody));
+	response->header_lines[LAST_MODIFIED] 	= getFileDate(filePointer);
+	response->header_lines[BODY] 			= fileBody;
+	
+	if(filePointer == NULL){
+		response->header_lines[CONTENT_TYPE] = getContentType("");
+	}
+	else
+	{
+		response->header_lines[CONTENT_TYPE] = getContentType(request->URI);
+		fclose(filePointer);
+	}
 }
+
+char * getStatusStr(int status)
+{
+	if(status == 200)
+	{
+		return strdup("OK");
+	}
+	else if(status == 404)
+	{
+		return strdup("Not Found");
+	}
+	else
+	{
+		return strdup("Unsupport Status");
+	}
+}
+
 //allocate all memory in functions before setting response pointers
 http_w * generateResponseInfo(http_r * request)
 {
-	printf("begin gRI\n");
-	http_w * response = malloc(sizeof(http_w));
-	memset(response, 0, sizeof(http_w));
+	// printf("begin gRI\n");
+	http_w * response = responseInit();
 
-	printf("in gRI: call gFI\n");
+	int status = 0;
+
+	// printf("in gRI: call gFI\n");
 	getFileInfo(request, response);
-
+	// printf("in gRI: BODY=%s\n",response->header_lines[BODY]);
 	//assume that if 
-	if(response->file->body == NULL)
+	if(strlen(response->header_lines[BODY]) == 0)
 	{
-		response->status = numToStr(404);
-		response->status_str = allocStr("Not Found");//not sure if this is standard
-		printf("in gRI: body unfilled\n");
+		status = 404;
+		// printf("in gRI: body unfilled\n");
 	}
 	else
 	{
 		//assume correct
-		response->status = numToStr(200);
-		response->status_str = allocStr("OK");
-		printf("in gRI: body filled, status=%s, stat_str=%s\n",response->status, response->status_str);
+		status = 200;
+		/*
+		printf("in gRI: body filled, status=%s, stat_str=%s\n",
+				response->header_lines[STATUS], 
+				response->header_lines[STATUS_STR]);
+		*/
 	}
+	printf("in gRI, sizeof(URI)=%d\n",sizeof(request->URI));
+	if(!isprint(request->HTTP_version[strlen(request->HTTP_version)-1]))
+	{
+		printf("in gRI, version has newline");
+		request->HTTP_version[strlen(request->HTTP_version)-1] = '\0';
+	}
+	response->header_lines[HTTP_VERSION] 	= strdup(request->HTTP_version);//todo
+	// response->header_lines[HTTP_VERSION] 	= strdup("HTTP/1.1");//todo
+	response->header_lines[STATUS] 			= numToStr(status);
+	response->header_lines[STATUS_STR] 		= getStatusStr(status); 
+	response->header_lines[CONNECTION] 		= strdup("close");//todo
+	response->header_lines[DATE] 			= dateToStr();
+	response->header_lines[SERVER] 			= strdup("CS118/0.0.1");
 
-	response->HTTP_version = strdup(request->HTTP_version); 
-	response->connection = allocStr("close");//todo
-	response->date = dateToStr();
-	response->server = allocStr("CS118/0.0.1");
-	printf("in gRI: response status = %s\n",response->status);
+	// printf("in gRI: response status = %s\n",response->header_lines[STATUS]);
 	return response;
-	printf("in gRI: wARNING, after response somehow\n");
 }
 
 char * generateResponseMessage(http_r *request)
 {
-	printf("begin gRM\n");
+	// printf("begin gRM\n");
 	http_w * response = NULL;
-
+	int i = 0; 
+	int pos = 0;
+	int len = 0;
+	
 	char * responseMessage = NULL;
-	size_t len = 0;
-	printf("in gRM: call gRI\n");
+	
+	// printf("in gRM: call gRI\n");
 	response = generateResponseInfo(request);
-	printf("in gRM: info returned\n");
+	// printf("in gRM: info returned\n");
 
-	len += strlen(response->HTTP_version);
-	len += strlen(response->status);
-	len += strlen(response->status_str);
-	len += strlen(response->connection);
-	len += strlen(response->date);
-	len += strlen(response->server);
-	len += strlen(response->file->type);
-	len += strlen(response->file->size);
-	len += strlen(response->file->body);
-	////if no date is allocated in getFileInfo, then this crashes the program
-	// len += strlen(response->file->date);
+	for(i = 0; i < NUM_HEADER_ELEMENTS; i++)
+	{
+		len += strlen(response->header_fields[i]);
+		len += strlen(response->header_lines[i]);
+	}
 
-	printf("in gRM: info length=%d\n",len);
-	//using the len above, and calculation below equalling 67, allocate responseMessage
-	responseMessage = malloc(sizeof(char) * (len+67+1));
-	memset(responseMessage, 0, (len+67+1));
-//right now, message does not containresponse->file->date
-//6+13+7+9+17+14+1=67
-	sprintf(responseMessage, 
-"%s %s %s\n\
-Connection: %s\n\
-Date: %s\n\
-Server: %s\n\
-Content-Length: %s\n\
-Content-Type: %s\n\
-\n\
-%s",
-	response->HTTP_version,
-	response->status,
-	response->status_str,
-	response->connection,
-	response->date,
-	response->server,
-	response->file->size,
-	response->file->type,
-	response->file->body);
-printf("in gRM: responseMessage:\n%s\n***END RESPONSE MESSAGE***\n", responseMessage);
+	// printf("in gRM: info length=%d\n",len+1);
+	responseMessage = malloc(sizeof(char) * (len+1));
+	memset(responseMessage, '\0', (len+1));
+
+	printf("http-version=%s\n",response->header_lines[HTTP_VERSION]);
+	pos = 0;
+	for(i = 0; i < NUM_HEADER_ELEMENTS; i++)
+	{
+		// printf("responseMessage[%d]=%s\n",pos,responseMessage);
+		sprintf(&(responseMessage[pos]),
+				"%s%s",
+				response->header_fields[i],
+				response->header_lines[i]);
+		pos = strlen(responseMessage);
+	}
+	printf("\nin gRM: ***responseMessage***\n%s\n***END RESPONSE MESSAGE***\n", responseMessage);
 
 
 //free the allocated space in the response variable
@@ -209,17 +277,13 @@ return responseMessage;
 
 void freeResponse(http_w * response)
 {
+	int i = 0;
 	//would have been more elegant if I used a string array
-	free(response->file->size);
-	free(response->file->type);
-	free(response->file->body);
-	free(response->file);
+	for(i = 0; i < NUM_HEADER_ELEMENTS; i++)
+	{
+		free(response->header_lines[i]);
+		free(response->header_fields[i]);
+	}
 
-	free(response->HTTP_version);
-	free(response->status);
-	free(response->status_str);
-	free(response->connection);
-	free(response->date);
-	free(response->server);
 	free(response);
 }
