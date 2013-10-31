@@ -10,7 +10,7 @@ http_w * responseInit()
 
 	response->header_lines = (char**)malloc(sizeof(char*) * (NUM_HEADER_ELEMENTS + 1));
 	if(!response->header_lines){error("ERROR malloc response->header_lines");}
-	memset(response->header_lines, '\0',sizeof(char*) * NUM_HEADER_ELEMENTS + 1);
+	memset(response->header_lines, 0, sizeof(char*) * NUM_HEADER_ELEMENTS + 1);
 
 	response->header_fields = (char**)malloc(sizeof(char*) * (NUM_HEADER_ELEMENTS +1));
 	if(!response->header_fields){error("ERROR malloc response->header_fields");}
@@ -28,6 +28,7 @@ http_w * responseInit()
 	
 	response->body_len = 0;
 	response->msg_len = 0;
+	response->message = NULL;
 	return response;
 }
 //code found on stackoverflow
@@ -121,7 +122,7 @@ void getFileInfo(const http_r * request, http_w * response)
 
 	if(filePointer == NULL)
 	{
-		printf("ERROR, could not open file \"%s\"\n",request->URI);
+		// printf("ERROR, could not open file \"%s\"\n",request->URI);
 		fileBody = strdup("");
 	}
 	else
@@ -137,7 +138,7 @@ void getFileInfo(const http_r * request, http_w * response)
 		fileSize = ftell(filePointer);
 		fseek(filePointer, 0L, SEEK_SET);
 		//end stackoverflow
-		// printf("in gFI: filesize: %d\n",fileSize);
+		printf("in gFI: filesize: %d\n",fileSize);
 		remaining = fileSize;
 
 		fileBody = malloc(sizeof(char)*(fileSize+1));
@@ -296,12 +297,17 @@ return response;
 void freeResponse(http_w * response)
 {
 	int i = 0;
-	//would have been more elegant if I used a string array
+	
 	for(i = 0; i < NUM_HEADER_ELEMENTS; i++)
 	{
-		free(response->header_lines[i]);
-		free(response->header_fields[i]);
+		if(response->header_lines[i] != NULL)
+			free(response->header_lines[i]);
+		if(response->header_fields[i] != NULL)
+			free(response->header_fields[i]);
 	}
-	free(response->message);
-	free(response);
+	// if(response->message != NULL)
+	// 	free(response->message);
+	if(response != NULL)
+		free(response);
+		response = NULL;
 }
