@@ -19,13 +19,16 @@ Server: uses the skelton code to setup the socket. Modified to support multiple 
 Parse: (Go Spencer!)If a URI is not provided, replace it with “/Index.html”
 
 Response: 
-This is composed of 6 functions, 1 main and 5 helper. The work is outline below:
+The work is outline below:
 generate response message 
 	generate response information
 		get file information
 			read file
 			determine length
 			determine extension
+		generate file related headers
+	generate http related headers
+merge header messages into a single message 
 
 //////////////////////////
 /////     Issues     /////
@@ -37,7 +40,8 @@ Parse
 •Multiple Requests: using the wrong index (Go Spencer!)
 
 Response
-•Images: We were able to open and read image files and append them to the response message, but the browser receiving them thought they were corrupt. We thought that the end of file character might have been missed in a 1-off error. There was also suggestion that the memset action with 0 instead of ‘\0’ caused misfunctioning with strlen. Another thought was that the bytes needed to be reordered using the host-to-net functions, but it was not clear how to do this. (unresolved)
+•Images: We were able to open and read image files and append them to the response message, but the browser receiving them thought they were corrupt. We thought that the end of file character might have been missed in a 1-off error. There was also suggestion that the memset action with 0 instead of ‘\0’ caused misfunctioning with strlen. Another thought was that the bytes needed to be reordered using the host-to-net functions, but it was not clear how to do this. 
+I also realized I was using strlen after reading in the binary file which may contain characters that are interpretet as the zero byte. I fixed this, but this did not fix the issue. (unresolved)
 
 //////////////////////////
 /////     Manual     /////
@@ -90,8 +94,21 @@ Content-Type: text/http
 Content-Length: 103
 Last-Modified: TODO
 
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>My First Heading</h1>
+
+<p>My first paragraph.</p>
+
+</body>
+
+</html>
+
 Client Display:
 simple index.html page
+
 
 Example 3 - basic html
 
@@ -111,8 +128,17 @@ Content-Type: text/http
 Content-Length: 103
 Last-Modified: TODO
 
+<!DOCTYPE html>
+<html>
+<body>
 
+<h1>My First Heading</h1>
 
+<p>My first paragraph.</p>
+
+</body>
+
+</html>
 
 Client Display:
 simple html page
@@ -128,6 +154,18 @@ GET /csspage.html HTTP/1.1
 …
 
 Server Out:
+(correct html file)
+
+
+Client Out:
+http://127.0.0.1/stylesheet.css
+
+Server In:
+GET /stylesheet.css HTTP/1.1
+…
+
+Server Out:
+(correct css file)
 
 Client Display:
 css formatted html page without images
