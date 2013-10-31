@@ -6,11 +6,14 @@ http_w * responseInit()
 	int i = 0;
 
 	http_w * response = (http_w*)malloc(sizeof(http_w));
+	if(!response){error("ERROR malloc response");}
 
 	response->header_lines = (char**)malloc(sizeof(char*) * (NUM_HEADER_ELEMENTS + 1));
-	memset(response->header_lines, 0,sizeof(char*) * NUM_HEADER_ELEMENTS + 1);
+	if(!response->header_lines){error("ERROR malloc response->header_lines");}
+	memset(response->header_lines, '\0',sizeof(char*) * NUM_HEADER_ELEMENTS + 1);
 
 	response->header_fields = (char**)malloc(sizeof(char*) * (NUM_HEADER_ELEMENTS +1));
+	if(!response->header_fields){error("ERROR malloc response->header_fields");}
 	response->header_fields[HTTP_VERSION] 	= strdup("");
 	response->header_fields[STATUS] 		= strdup(" ");
 	response->header_fields[STATUS_STR] 	= strdup(" ");
@@ -23,6 +26,8 @@ http_w * responseInit()
 	response->header_fields[LAST_MODIFIED] 	= strdup("\nLast-Modified: ");
 	response->header_fields[BODY] 			= strdup("\n\n");
 	
+	response->body_len = 0;
+	response->msg_len = 0;
 	return response;
 }
 //code found on stackoverflow
@@ -34,6 +39,7 @@ http_w * responseInit()
 char * dateToStr()
 {
   char *buf = malloc(sizeof(char) * (30));
+  if(!buf){error("ERROR malloc buf");}
   time_t now = time(0);
   struct tm tm = *gmtime(&now);
   strftime(buf, 30, "%a, %d %b %Y %H:%M:%S %Z", &tm);
@@ -48,7 +54,7 @@ char * numToStr(size_t num)
 {
 	
 	char buf[21];
-	memset(buf,0,21);
+	memset(buf,'\0',21);
 	sprintf(buf,"%d",num);
 	return strdup(buf);
 }
@@ -107,6 +113,7 @@ void getFileInfo(const http_r * request, http_w * response)
 	// printf("begin gFI\n");
 
 	char * fileBody = NULL;
+	size_t fileSize = 0;
 
 	FILE *filePointer = NULL;
 	filePointer = fopen(&(request->URI[1]), "r");
@@ -120,8 +127,7 @@ void getFileInfo(const http_r * request, http_w * response)
 	else
 	{	
 		int remaining = -1;
-		int pos = 0;
-		size_t fileSize = 0;
+		size_t pos = 0;
 		 
 
 		//find file size
@@ -131,37 +137,36 @@ void getFileInfo(const http_r * request, http_w * response)
 		fileSize = ftell(filePointer);
 		fseek(filePointer, 0L, SEEK_SET);
 		//end stackoverflow
-		// printf("in gFI: filesize: %d\n",fileSize);
+		printf("in gFI: filesize: %d\n",fileSize);
 		remaining = fileSize;
 
 		fileBody = malloc(sizeof(char)*(fileSize+1));
-		memset(fileBody, 0, sizeof(char)*(fileSize+1));
+		if(!fileBody){error("ERROR malloc fileBody");}
+		// memset(fileBody, 0, sizeof(char)*(fileSize+1));
 		
 		//this should concatenate
 		//todo check: this included the EOF
-	    while (remaining > 0)
+	    pos = fread(fileBody, 1, fileSize, filePointer);
+	    if(pos != fileSize) {printf("in gFI, did not read entire file\n");}
+	    /*
+	    while ( remaining > 0)
 	    {
 	    	// printf("in gFI: fileSize = %d, pos = %d, remaining = %d\n",fileSize, pos, remaining);
-	      	// fileBody[pos] = fgetc (filePointer);
-	      	pos = strlen(fileBody);
-	      	remaining = fileSize-pos; 
-	      	if(pos%1000 == 0)
-	      	{
-	      		// printf("in gFI: pos=%d\n",pos);
-	      	}
+	      	fileBody[pos] = fgetc (filePointer);
+	      	
+	      		pos++;// = strlen(fileBody);
+	      		remaining = fileSize-pos;
 	    }
+	    */
+
 	    // printf("in gFI: fileSize = %d, pos = %d, remaining = %d\n",fileSize, pos, remaining);
-	    // fclose (filePointer);//relocated to bottom so unfound file can be detected
-	    printf("in gFI: fileSize-3 = %c\n",fileBody[fileSize-3]);
-	    printf("in gFI: fileSize-2 = %c\n",fileBody[fileSize-2]);
-	    printf("in gFI: fileSize-1 = %c\n",fileBody[fileSize-1]);
-	    // printf("in gFI: fileSize-0 = %c\n",fileBody[fileSize]);
-	    
+	    // fclose (filePointer);//relocated to bottom so unfound file can be detected	    
 	}
 	// printf("in gFI: fileBody:\n%s\n***END BODY***\n", fileBody);
 	// printf("in gFI: strlen(fileBody) = %d\n", strlen(fileBody));
 	
-	response->header_lines[CONTENT_LENGTH] 	= numToStr(strlen(fileBody));
+	response->header_lines[CONTENT_LENGTH] 	= numToStr(fileSize);
+	response->body_len = fileSize;
 	response->header_lines[LAST_MODIFIED] 	= getFileDate(filePointer);
 	response->header_lines[BODY] 			= fileBody;
 	
@@ -218,8 +223,14 @@ http_w * generateResponseInfo(http_r * request)
 				response->header_lines[STATUS_STR]);
 		*/
 	}
-
-	response->header_lines[HTTP_VERSION] 	= strdup("HTTP/1.1");//todo
+	// printf("in gRI, sizeof(URI)=%d\n",sizeof(request->URI));
+	if(!isprint(request->HTTP_version[strlen(request->HTTP_version)-1]))
+	{
+		// printf("in gRI, version has non-printable char");
+		request->HTTP_version[strlen(request->HTTP_version)-1] = '\0';
+	}
+	response->header_lines[HTTP_VERSION] 	= strdup(request->HTTP_version);//todo
+	// response->header_lines[HTTP_VERSION] 	= strdup("HTTP/1.1");//todo
 	response->header_lines[STATUS] 			= numToStr(status);
 	response->header_lines[STATUS_STR] 		= getStatusStr(status); 
 	response->header_lines[CONNECTION] 		= strdup("close");//todo
@@ -230,7 +241,7 @@ http_w * generateResponseInfo(http_r * request)
 	return response;
 }
 
-char * generateResponseMessage(http_r *request)
+http_w * generateResponseMessage(http_r *request)
 {
 	// printf("begin gRM\n");
 	http_w * response = NULL;
@@ -238,38 +249,48 @@ char * generateResponseMessage(http_r *request)
 	int pos = 0;
 	int len = 0;
 	
-	char * responseMessage = NULL;
-	
 	// printf("in gRM: call gRI\n");
 	response = generateResponseInfo(request);
 	// printf("in gRM: info returned\n");
 
 	for(i = 0; i < NUM_HEADER_ELEMENTS; i++)
 	{
-		len += strlen(response->header_fields[i]);
-		len += strlen(response->header_lines[i]);
+		if(i == BODY)
+		{
+			len += strlen(response->header_fields[i]);
+			len += response->body_len;
+
+		}
+		else
+		{
+			len += strlen(response->header_fields[i]);
+			len += strlen(response->header_lines[i]);
+		}
 	}
-
+	response->msg_len = len;
 	// printf("in gRM: info length=%d\n",len+1);
-	responseMessage = malloc(sizeof(char) * (len+1));
-	memset(responseMessage, 0, (len+1));
+	response->message = malloc(sizeof(char) * (len+1));
+	if(!response->message){error("ERROR malloc responseMessage");}
+	memset(response->message, '\0', (len+1));
 
+	printf("http-version=%s\n",response->header_lines[HTTP_VERSION]);
 	pos = 0;
 	for(i = 0; i < NUM_HEADER_ELEMENTS; i++)
 	{
-		sprintf(&(responseMessage[pos]),
+		// printf("responseMessage[%d]=%s\n",pos,responseMessage);
+		sprintf(&(response->message[pos]),
 				"%s%s",
 				response->header_fields[i],
 				response->header_lines[i]);
-		pos = strlen(responseMessage);
+		pos = strlen(response->message);//error if anythig is after the body
 	}
-	printf("\nin gRM: ***responseMessage***\n%s\n***END RESPONSE MESSAGE***\n", responseMessage);
+	printf("\nin gRM: ***response->message***\n%s\n***END RESPONSE MESSAGE***\n", response->message);
 
 
 //free the allocated space in the response variable
-freeResponse(response);
+// freeResponse(response);
 
-return responseMessage;
+return response;
 }
 
 void freeResponse(http_w * response)
@@ -281,6 +302,6 @@ void freeResponse(http_w * response)
 		free(response->header_lines[i]);
 		free(response->header_fields[i]);
 	}
-
+	free(response->message);
 	free(response);
 }
