@@ -14,7 +14,7 @@ http_r * parseRequest(char* requestMessage) {
 	http_r * request = malloc(sizeof(http_r));
 
 	int i;
-	if(strncmp(requestMessage,"GET ",4) && strncmp(requestMessage"get ",4)){
+	if(strncmp(requestMessage,"GET ",4) && strncmp(requestMessage,"get ",4)){
 		strncpy(request->method, requestMessage, 4);
 	}
 	for(i=0; i < BUFSIZE; i++){
