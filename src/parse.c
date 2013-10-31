@@ -22,6 +22,10 @@ http_r * parseRequest(char* requestMessage) {
 			strncpy(request->URI,requestMessage+4, i-4);
 		}
 	}
+	
+	if(strcmp(request->URI, "/")) {
+		strcpy(request->URI, "/index.html");
+	}
 	strcpy(request->HTTP_version,"HTTP/1.1");
 	return request;
 }
