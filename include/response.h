@@ -40,6 +40,9 @@ typedef struct {
 //pointers to all content
 	char ** header_lines;
 	char ** header_fields;
+	size_t body_len;
+	size_t msg_len;
+	char * message;
 } http_w;
 
 http_w * responseInit();
@@ -52,7 +55,7 @@ void getFileInfo(const http_r * request, http_w * response);
 
 char * getStatusStr(int status);
 http_w * generateResponseInfo(http_r * request);
-char * generateResponseMessage(http_r * request);
+http_w * generateResponseMessage(http_r * request);
 void freeResponse(http_w * response);
 
 #endif //RESPONSE_H

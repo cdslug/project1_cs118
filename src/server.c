@@ -118,14 +118,16 @@ int read_socket(int filedes) {
 	else {
 		//parse message here
 		http_r* request;
+        http_w* response;
 		request = parseRequest(buffer);
         printRequest(request);
 		char* filePath = request->URI;
 		printf("Here is the file path: %s\n", filePath);
-		char * responseMessage = generateResponseMessage(request);
+		response = generateResponseMessage(request);
 		//reply to client
-		nwrite = write(filedes,responseMessage,strlen(responseMessage));
-        free(responseMessage);
+        printf("in server: body_size=%d, msg_size=%d\n",response->body_len, response->msg_len);
+		nwrite = write(filedes,response->message,response->msg_len);
+        freeResponse(response);
         // freeRequest(request);
 		if (nwrite < 0) error("ERROR writing to socket");
 		return 0;
