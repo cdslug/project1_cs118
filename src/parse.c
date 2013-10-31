@@ -12,21 +12,39 @@
 
 http_r * parseRequest(char* requestMessage) {
 	http_r * request = malloc(sizeof(http_r));
+	memset(request,0, sizeof(http_r));
 
 	int i;
-	if(strncmp(requestMessage,"GET ",4) && strncmp(requestMessage,"get ",4)){
+	if(strncmp(requestMessage,"GET ",4) || strncmp(requestMessage,"get ",4)){
+		request->method = malloc(sizeof(char)*5);
+		memset(request->method, '\0', sizeof(char)*5);
 		strncpy(request->method, requestMessage, 4);
+		// printf("in pR, request->method=%s\n",request->method);
 	}
-	for(i=0; i < BUFSIZE; i++){
+	else
+	{
+		perror("ERROR method not suppported");
+		exit(1);
+	}
+
+	// printf("in pR, before forloop\n");
+	for(i=4; i < BUFSIZE; i++){
 		if(requestMessage[i] == ' '){
+			request->URI = malloc(sizeof(char)*(i-3));
+			memset(request->URI,'\0',sizeof(char)*(i-3));
 			strncpy(request->URI,requestMessage+4, i-4);
+			break;
 		}
+		// printf("in pR, requestMessage[%d]=%c\n",i, requestMessage[i]);
 	}
-	
-	if(strcmp(request->URI, "/")) {
-		strcpy(request->URI, "/index.html");
+	// printf("in pR, after forloop\n");
+	if(strlen(request->URI) <= 1 && strcmp(request->URI, "/")) {
+		free(request->URI);
+		request->URI = strdup("/index.html");
 	}
-	strcpy(request->HTTP_version,"HTTP/1.1");
+
+	// printf("in pR, last strcpy\n");
+	request->HTTP_version = strdup("HTTP/1.1");
 	return request;
 }
 

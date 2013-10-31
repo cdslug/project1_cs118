@@ -1,6 +1,7 @@
 #include "response.h"
 
-
+//hard codes the header fields with necessary whitespace for ease of printing later
+//note: allocates memory
 http_w * responseInit()
 {
 	int i = 0;
@@ -35,8 +36,8 @@ http_w * responseInit()
 //http://stackoverflow.com/questions/7548759/generate-a-date-string-in-http-response-date-format-in-c
 //SAMPLE: "Tue, 15 Nov 2010 08:12:31 GMT"
 //
-//allocate memory in function
 //return pointer to cstring
+//note: allocates memory
 char * dateToStr()
 {
   char *buf = malloc(sizeof(char) * (30));
@@ -51,6 +52,7 @@ char * dateToStr()
 //max length of a number is ceiling of log10(2^64-1)+1 = 21
 //didn't end up using the method that needed this info
 //still seems useful enough to keep
+//note: allocates memory
 char * numToStr(size_t num)
 {
 	
@@ -60,6 +62,7 @@ char * numToStr(size_t num)
 	return strdup(buf);
 }
 
+//note: allocates memory
 char * getContentType(const char * URI)
 {
 	char * contentType = NULL;
@@ -106,9 +109,13 @@ char * getFileDate(FILE * fp)
 		return strdup("TODO");
 	}
 }
-//the convention I used allocates member strings in helper functions
-//the helper functions pass back a pointer to allocated memory
-//this memory needs to be cleaned up
+
+//takes a request and used the URI to open a file and determine file information
+//file information is stored as strings in the response struct
+//INPUT: request, response
+//OUTPUT: none
+//RETURN: none
+//note: the image sending error are probably located in this function
 void getFileInfo(const http_r * request, http_w * response)
 {
 	// printf("begin gFI\n");
@@ -138,7 +145,7 @@ void getFileInfo(const http_r * request, http_w * response)
 		fileSize = ftell(filePointer);
 		fseek(filePointer, 0L, SEEK_SET);
 		//end stackoverflow
-		printf("in gFI: filesize: %d\n",fileSize);
+		// printf("in gFI: filesize: %d\n",fileSize);
 		remaining = fileSize;
 
 		fileBody = malloc(sizeof(char)*(fileSize+1));
@@ -181,6 +188,7 @@ void getFileInfo(const http_r * request, http_w * response)
 	}
 }
 
+//note: allocates memory
 char * getStatusStr(int status)
 {
 	if(status == 200)
@@ -197,7 +205,11 @@ char * getStatusStr(int status)
 	}
 }
 
-//allocate all memory in functions before setting response pointers
+//gather information in the form of string and store it in the request struct
+//INPUT: request struct
+//OUTPUT: none
+//return: response struct (without message)
+//note: all memory is allocated in functions before setting response pointers
 http_w * generateResponseInfo(http_r * request)
 {
 	// printf("begin gRI\n");
@@ -242,6 +254,12 @@ http_w * generateResponseInfo(http_r * request)
 	return response;
 }
 
+
+//takes a parsed request struct and generates an http response message
+//INPUT: request struct
+//OUTPUT: none
+//return: response struct (with message)
+//note: allocates memory for the resonse message
 http_w * generateResponseMessage(http_r *request)
 {
 	// printf("begin gRM\n");
@@ -294,6 +312,10 @@ http_w * generateResponseMessage(http_r *request)
 return response;
 }
 
+
+//should be called after the http response is sent
+//memory leak with the response message
+//otherwise there is a double free error
 void freeResponse(http_w * response)
 {
 	int i = 0;
