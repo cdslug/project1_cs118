@@ -137,7 +137,7 @@ void getFileInfo(const http_r * request, http_w * response)
 		fileSize = ftell(filePointer);
 		fseek(filePointer, 0L, SEEK_SET);
 		//end stackoverflow
-		printf("in gFI: filesize: %d\n",fileSize);
+		// printf("in gFI: filesize: %d\n",fileSize);
 		remaining = fileSize;
 
 		fileBody = malloc(sizeof(char)*(fileSize+1));
@@ -273,7 +273,7 @@ http_w * generateResponseMessage(http_r *request)
 	if(!response->message){error("ERROR malloc responseMessage");}
 	memset(response->message, '\0', (len+1));
 
-	printf("http-version=%s\n",response->header_lines[HTTP_VERSION]);
+	// printf("http-version=%s\n",response->header_lines[HTTP_VERSION]);
 	pos = 0;
 	for(i = 0; i < NUM_HEADER_ELEMENTS; i++)
 	{
@@ -284,7 +284,7 @@ http_w * generateResponseMessage(http_r *request)
 				response->header_lines[i]);
 		pos = strlen(response->message);//error if anythig is after the body
 	}
-	printf("\nin gRM: ***response->message***\n%s\n***END RESPONSE MESSAGE***\n", response->message);
+	// printf("\nin gRM: ***response->message***\n%s\n***END RESPONSE MESSAGE***\n", response->message);
 
 
 //free the allocated space in the response variable
