@@ -1,3 +1,10 @@
+/*
+ * parse.h
+ *
+ *  Created on: Oct 28, 2013
+ *      Author: spencer
+ */
+
 #ifndef PARSE_H
 #define PARSE_H
 
@@ -11,11 +18,12 @@ typedef struct {
 	char* method;
 	char* URI;
 	char* HTTP_version;
-	char** header_lines;
 } http_r;
 
-char** str_split(char* str, const char delim);
+
 http_r* parseRequest(char* requestMessage);
+void freeRequest(http_r* request);
 void printRequest(http_r* request);
 
 #endif //PARSE_H
+
